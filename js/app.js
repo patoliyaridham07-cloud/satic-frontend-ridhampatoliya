@@ -1,39 +1,94 @@
-import {mockDashboardData} from"./data.js"
+import { mockDashboardData } from "./data.js";
+
+/* TABLE */
 const tableBody = document.getElementById("table-body");
 
-// Example data
-const users = [
-  { id: 1, name: "John", email: "john@mail.com", revenue: "$200", status: "active" },
-  { id: 2, name: "Sara", email: "sara@mail.com", revenue: "$150", status: "pending" },
-  { id: 3, name: "Mike", email: "mike@mail.com", revenue: "$300", status: "churned" }
-];
-
-function loadTable() {
+function renderTable(data) {
   tableBody.innerHTML = "";
 
-  users.forEach((user, index) => {
-    const row = document.createElement("tr");
-
-    row.style.opacity = "0";
-    row.style.transform = "translateY(20px)";
-
-    row.innerHTML = `
-      <td>${user.id}</td>
+  const rows = data.map(user => `
+    <tr>
+      <td>${user.id.slice(0,6)}</td>
       <td>${user.name}</td>
       <td>${user.email}</td>
-      <td>${user.revenue}</td>
-      <td>${user.status}</td>
-    `;
+      <td>${new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+      }).format(user.revenue)}</td>
+      <td class="status-${user.status.toLowerCase()}">
+        ${user.status}
+      </td>
+    </tr>
+  `).join("");
 
-    tableBody.appendChild(row);
-
-    // animation delay
-    setTimeout(() => {
-      row.style.transition = "all 0.4s ease";
-      row.style.opacity = "1";
-      row.style.transform = "translateY(0)";
-    }, index * 100);
-  });
+  tableBody.innerHTML = rows;
 }
 
-loadTable();
+/* CHART */
+const ctx = document.getElementById("revenueChart");
+
+const labels = mockDashboardData.slice(0,10).map(u => u.name);
+const values = mockDashboardData.slice(0,10).map(u => u.revenue);
+
+const chart = new Chart(ctx, {
+  type: "bar",
+  data: {
+    labels,
+    datasets: [{
+      label: "Revenue",
+      data: values,
+      backgroundColor: getComputedStyle(document.documentElement)
+        .getPropertyValue('--brand-accent')
+    }]
+  },
+  options: {
+    maintainAspectRatio: false
+  }
+});
+
+/* FILTER */
+document.getElementById("status-filter")
+  .addEventListener("change", (e) => {
+    const val = e.target.value;
+
+    if (val === "all") {
+      renderTable(mockDashboardData);
+      return;
+    }
+
+    const filtered = mockDashboardData.filter(user =>
+      user.status.toLowerCase() === val
+    );
+
+    renderTable(filtered);
+  });
+
+/* DARK MODE */
+const btn = document.getElementById("theme-toggle");
+
+btn.addEventListener("click", () => {
+  const isDark = document.documentElement
+    .getAttribute("data-theme") === "dark";
+
+  if (isDark) {
+    document.documentElement.removeAttribute("data-theme");
+    localStorage.setItem("theme", "light");
+  } else {
+    document.documentElement.setAttribute("data-theme", "dark");
+    localStorage.setItem("theme", "dark");
+  }
+
+  chart.update();
+});
+
+/* INIT THEME */
+(function () {
+  const saved = localStorage.getItem("theme");
+
+  if (saved) {
+    document.documentElement.setAttribute("data-theme", saved);
+  }
+})();
+
+/* INITIAL LOAD */
+renderTable(mockDashboardData);
