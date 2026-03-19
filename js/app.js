@@ -1,3 +1,4 @@
+import {mockDashboardData} from"./data.js"
 const tableBody = document.getElementById("table-body");
 
 // Example data
